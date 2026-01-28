@@ -1,0 +1,19 @@
+[Unit]
+Description=NVMe-TCP Connection for %i
+Documentation=man:nvme(1)
+After=network-online.target
+Wants=network-online.target
+Before=lvm2-activation.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/etc/nvme-tcp/%i.conf
+ExecStart=/bin/bash -c '/usr/local/bin/nvme-connect.sh -n "${SUBNQN}" -a "${PORTALS}" -p "${PORT:-8009}" -t "${CTRL_LOSS_TMO:-1800}" -r "${RECONNECT_DELAY:-10}" -i "${IOPOLICY:-queue-depth}" ${HOST_IFACE:+-I "${HOST_IFACE}"} ${HOST_TRADDR:+-T "${HOST_TRADDR}"}'
+ExecStop=/usr/local/bin/nvme-connect.sh -d -n ${SUBNQN}
+TimeoutStartSec=60
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
+
