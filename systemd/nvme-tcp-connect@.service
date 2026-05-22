@@ -3,7 +3,7 @@ Description=NVMe-TCP Connection for %i
 Documentation=man:nvme(1)
 After=network-online.target
 Wants=network-online.target
-Before=lvm2-activation.service
+Before=pve-guests.service
 
 [Service]
 Type=oneshot

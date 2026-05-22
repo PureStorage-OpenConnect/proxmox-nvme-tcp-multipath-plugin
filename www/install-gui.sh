@@ -4,6 +4,12 @@
 
 set -e
 
+# Fix Windows line endings if present (script may have been copied from Windows)
+if grep -qP '\r' "$0" 2>/dev/null; then
+    sed -i 's/\r$//' "$0"
+    exec bash "$0" "$@"
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PVEMANAGERLIB="/usr/share/pve-manager/js/pvemanagerlib.js"
 BACKUP_DIR="/var/lib/nvme-tcp-plugin"
@@ -12,7 +18,7 @@ MARKER_START="// ========== NVME-TCP-PLUGIN-START =========="
 MARKER_END="// ========== NVME-TCP-PLUGIN-END =========="
 
 # Tested pve-manager version - update this when testing on new versions
-TESTED_PVE_VERSION="9.1.4"
+TESTED_PVE_VERSION="9.2.2"
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
@@ -43,23 +49,26 @@ CURRENT_VERSION=$(pveversion 2>/dev/null | grep -oP 'pve-manager/\K[0-9]+\.[0-9]
 
 if [ "$CURRENT_VERSION" = "unknown" ]; then
     warn "Could not determine pve-manager version"
-    read -p "Continue anyway? [y/N] " -n 1 -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
+    if [ -t 0 ]; then
+        read -p "Continue anyway? [y/N] " -n 1 -r
+        echo ""
+        [[ $REPLY =~ ^[Yy]$ ]] || exit 1
+    else
+        warn "Non-interactive mode: proceeding anyway"
     fi
 elif [ "$CURRENT_VERSION" != "$TESTED_PVE_VERSION" ]; then
     warn "pve-manager version mismatch!"
     warn "  Installed: $CURRENT_VERSION"
     warn "  Tested:    $TESTED_PVE_VERSION"
-    warn ""
     warn "This GUI patch was tested on pve-manager $TESTED_PVE_VERSION."
     warn "It may not work correctly on version $CURRENT_VERSION."
-    echo ""
-    read -p "Continue anyway? [y/N] " -n 1 -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
+    if [ -t 0 ]; then
+        echo ""
+        read -p "Continue anyway? [y/N] " -n 1 -r
+        echo ""
+        [[ $REPLY =~ ^[Yy]$ ]] || exit 1
+    else
+        warn "Non-interactive mode: proceeding anyway"
     fi
 else
     log "  ✓ pve-manager version $CURRENT_VERSION matches tested version"
