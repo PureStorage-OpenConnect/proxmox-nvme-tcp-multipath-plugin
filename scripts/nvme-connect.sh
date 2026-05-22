@@ -135,17 +135,25 @@ connect() {
 
         log "Connecting to $addr:$port for $subnqn (iface: ${iface:-auto}, traddr: ${traddr:-auto})"
 
-        # Build command
-        local cmd="nvme connect -t tcp -n $subnqn -a $addr -s $port --ctrl-loss-tmo=$CTRL_LOSS_TMO --reconnect-delay=$RECONNECT_DELAY"
+        # Build command array (avoids eval and command injection)
+        local -a cmd=(
+            nvme connect
+            -t tcp
+            -n "$subnqn"
+            -a "$addr"
+            -s "$port"
+            "--ctrl-loss-tmo=$CTRL_LOSS_TMO"
+            "--reconnect-delay=$RECONNECT_DELAY"
+        )
 
         if [ -n "$iface" ]; then
-            cmd="$cmd --host-iface=$iface"
+            cmd+=("--host-iface=$iface")
         fi
         if [ -n "$traddr" ]; then
-            cmd="$cmd --host-traddr=$traddr"
+            cmd+=("--host-traddr=$traddr")
         fi
 
-        eval "$cmd" 2>&1 || {
+        "${cmd[@]}" 2>&1 || {
             error "Failed to connect to $addr:$port"
         }
 
